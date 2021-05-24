@@ -8,31 +8,36 @@ import time
 import telegram
 import logging
 import json
+import os
 
-logging.basicConfig(filename='~/logs/stoch_short.log', format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
+# 경로 설정
+home = os.getcwd()
+path_log = os.path.join(home, 'logs', 'upbit_trading.log')
+path_info = os.path.join(home, 'symmetrical-umbrella', 'info.txt')
+path_upbit = os.path.join(home, 'api', 'upbit.txt')
+path_telegram = os.path.join(home, 'api', 'mybot.txt')
+
+logging.basicConfig(filename=path_log, format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
 
 # 객체 생성
-f = open("~/symmetrical-umbrella/upbit.txt")
-lines = f.readlines()
-access = lines[0].strip()
-secret = lines[1].strip()
-f.close()
+with open(path_upbit) as f:
+    lines = f.readlines()
+    access = lines[0].strip()
+    secret = lines[1].strip()
 upbit = pyupbit.Upbit(access, secret)
 
 start_balance = upbit.get_balance("KRW")
 end_balance = upbit.get_balance("KRW")
 
 # telegram setting
-with open("~/symmetrical-umbrella/mybot.txt") as f:
+with open(path_telegram) as f:
     lines = f.readlines()
     my_token = lines[0].strip()
     chat_id = lines[1].strip()
 bot = telegram.Bot(token = my_token)
 
-tickers = pyupbit.get_tickers("KRW")
-
 # Coin정보 저장 파일 불러오기
-with open('~/symmetrical-umbrella/info.txt', 'r') as f:
+with open(path_info, 'r') as f:
     data = f.read()
     info = json.loads(data)
 
@@ -117,6 +122,8 @@ def price_unit(price):
     return price
 
 
+tickers = pyupbit.get_tickers("KRW")
+
 total_hold = 0
 for ticker in tickers:
     if info[ticker]['position'] != 'wait':
@@ -166,7 +173,7 @@ while True:
                     info[ticker]['amount'] = amount # 코인 갯수 저장
                     total_hold += 1
                     bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} 롱 포지션\n매수가: {current_price}\n투자금액: {money:.2f}\n총 보유 코인: {total_hold}")
-                    loggin.info(f"{ticker} 롱 포지션\n매수가: {current_price}\n투자금액: {money:.2f}\n총 보유 코인: {total_hold}")
+                    logging.info(f"{ticker} 롱 포지션\n매수가: {current_price}\n투자금액: {money:.2f}\n총 보유 코인: {total_hold}")
                 time.sleep(0.1)
 
         elif now.minute == 59 and 0 <= now.second <= 3:
@@ -180,6 +187,8 @@ while True:
                     bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} (롱)\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {(profit-1)*100}%")
                     logging.info(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit}")
                 time.sleep(0.1)
+            with open(path_info, 'w') as f:
+                f.write(json.dumps(info)) # use `json.loads` to do the reverse
 
     except Exception as e:
         logging.error(e)
