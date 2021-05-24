@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# TXT Key File
+upbit.txt
+mybot.txt
