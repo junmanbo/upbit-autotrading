@@ -1,12 +1,18 @@
+#!/usr/bin/env python
+
 import pyupbit
 import numpy as np
 import pandas as pd
 import datetime
 import time
 import telegram
+import logging
+import json
+
+logging.basicConfig(filename='~/logs/stoch_short.log', format='%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
 
 # 객체 생성
-f = open("upbit.txt")
+f = open("~/symmetrical-umbrella/upbit.txt")
 lines = f.readlines()
 access = lines[0].strip()
 secret = lines[1].strip()
@@ -17,7 +23,7 @@ start_balance = upbit.get_balance("KRW")
 end_balance = upbit.get_balance("KRW")
 
 # telegram setting
-with open("mybot.txt") as f:
+with open("~/symmetrical-umbrella/mybot.txt") as f:
     lines = f.readlines()
     my_token = lines[0].strip()
     chat_id = lines[1].strip()
@@ -25,18 +31,10 @@ bot = telegram.Bot(token = my_token)
 
 tickers = pyupbit.get_tickers("KRW")
 
-# 코인별 저장 정보값 초기화
-info = {}
-for ticker in tickers:
-    info[ticker] = {}
-    info[ticker]['amount'] = 0 # 코인 매수/매도 갯수
-    info[ticker]['position'] = 'wait' # 현재 거래 포지션 (long / short / wait)
-    info[ticker]['price'] = 0 # 코인 거래한 가격
-    info[ticker]['slow_osc'] = 0 # Stochastic Slow Oscilator 값 (Day)
-    info[ticker]['slow_osc_slope'] = 0 # Stochastic Slow Oscilator 기울기 값 (Day)
-    info[ticker]['macd_osc'] = 0 # MACD Oscilator 값
-    info[ticker]['ma'] = 0 # 지수이동평균 값
-    info[ticker]['open'] = 0 # 지수이동평균 값
+# Coin정보 저장 파일 불러오기
+with open('~/symmetrical-umbrella/info.txt', 'r') as f:
+    data = f.read()
+    info = json.loads(data)
 
 # Stochastic Slow Oscilator 값 계산
 def calStochastic(df, n=12, m=5, t=5):
@@ -65,6 +63,7 @@ def calMACD(df, m_NumFast=14, m_NumSlow=30, m_NumSignal=10):
 
 # 코인별 Stochastic OSC 값 info에 저장
 def save_info():
+    logging.info('그래프 분석 후 저장')
     for ticker in tickers:
         # 일봉 데이터 수집
         df = pyupbit.get_ohlcv(ticker, interval="day")
@@ -76,13 +75,14 @@ def save_info():
         info[ticker]['ma'] = calMA(df)
         info[ticker]['open'] = df['open'][-1]
 
-        print(f"코인: {ticker}\n\
+        logging.info(f"코인: {ticker}\n\
             Stochastic OSC (Day): {info[ticker]['slow_osc']}\n\
             Stochastic OSC Slope (Day): {info[ticker]['slow_osc_slope']}\n\
             MACD: {info[ticker]['macd_osc']}\n\
             EMA: {info[ticker]['ma']}\n\
             OPEN: {info[ticker]['open']}\n")
         time.sleep(0.1)
+    logging.info('그래프 분석 후 저장 완료')
 
 # 투자금액 조정
 def adjust_money(free_balance, total_hold):
@@ -117,10 +117,15 @@ def price_unit(price):
     return price
 
 
-total_hold = 0 # 총 보유 코인
+total_hold = 0
+for ticker in tickers:
+    if info[ticker]['position'] != 'wait':
+        total_hold += 1 # 투자한 Coin 갯수
+
 money = 0
 profit = 1.015 # 익절 수익률(1.015 == 1.5%)
 bot.sendMessage(chat_id = chat_id, text=f"Stochastic (단타) 전략 시작합니다. 화이팅!")
+
 #  except_coin = ['KRW-BTC', 'KRW-ETH'] # 거래에서 제외하고 싶은 코인(있으면 주석 풀고 추가)
 #  for coin in except_coin:
 #      tickers.remove(coin)
@@ -144,7 +149,7 @@ while True:
                     order = upbit.sell_market_order(ticker=ticker, volume=info[ticker]['amount']) # 시장가 매도
                     calProfit = (current_price - info[ticker]['price']) / info[ticker]['price'] * 100 # 수익률 계산
                     bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} (롱)\n매수가: {info[ticker]['price']} -> 매도가: {current_price}\n수익률: {calProfit:.2f}%")
-                    print(f"코인: {ticker} (롱) 포지션 청산\n매수가: {info[ticker]['price']} -> 매도가: {current_price}\n수익률: {calProfit:.2f}")
+                    logging.info(f"코인: {ticker} (롱) 포지션 청산\n매수가: {info[ticker]['price']} -> 매도가: {current_price}\n수익률: {calProfit:.2f}")
 
                 # 조건 만족시 롱 포지션
                 elif total_hold < 3 and info[ticker]['position'] == 'wait' and \
@@ -161,7 +166,7 @@ while True:
                     info[ticker]['amount'] = amount # 코인 갯수 저장
                     total_hold += 1
                     bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} 롱 포지션\n매수가: {current_price}\n투자금액: {money:.2f}\n총 보유 코인: {total_hold}")
-                    print(f"{ticker} 롱 포지션\n매수가: {current_price}\n투자금액: {money:.2f}\n총 보유 코인: {total_hold}")
+                    loggin.info(f"{ticker} 롱 포지션\n매수가: {current_price}\n투자금액: {money:.2f}\n총 보유 코인: {total_hold}")
                 time.sleep(0.1)
 
         elif now.minute == 59 and 0 <= now.second <= 3:
@@ -173,8 +178,9 @@ while True:
                     total_hold -= 1
                     info[ticker]['position'] = 'wait'
                     bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} (롱)\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {(profit-1)*100}%")
-                    print(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit}")
+                    logging.info(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit}")
                 time.sleep(0.1)
 
     except Exception as e:
+        logging.error(e)
         bot.sendMessage(chat_id = chat_id, text=f"에러발생 {e}")
