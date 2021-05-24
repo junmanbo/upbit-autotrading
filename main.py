@@ -91,8 +91,8 @@ def save_info():
 
 # 투자금액 조정
 def adjust_money(free_balance, total_hold):
-    if total_hold < 3: # 투자 할 종목 갯수(total_hold)
-        available_hold = 3 - total_hold
+    if total_hold < investing_coin:
+        available_hold = investing_coin - total_hold
         money = round((free_balance / available_hold - 10000), 0)
         return money
 
@@ -100,8 +100,8 @@ def adjust_money(free_balance, total_hold):
 def cancel_order(ticker):
     try:
         ret = upbit.get_order(ticker)[0].get('uuid')
-        upbit.cancel_order(ret)
-        print(f"{ticker}의 미체결된 거래내역을 취소했습니다.")
+        order = upbit.cancel_order(ret)
+        logging.info(f"{ticker}의 미체결된 거래내역을 취소했습니다.\n주문조회: {ret}\n취소내역: {order}")
     except:
         pass
 
@@ -130,6 +130,7 @@ for ticker in tickers:
         total_hold += 1 # 투자한 Coin 갯수
 
 money = 0
+investing_coin = 3 # 투자할 코인 갯수
 profit = 1.015 # 익절 수익률(1.015 == 1.5%)
 bot.sendMessage(chat_id = chat_id, text=f"Stochastic (단타) 전략 시작합니다. 화이팅!")
 
@@ -141,12 +142,12 @@ while True:
     try:
         now = datetime.datetime.now()
         time.sleep(1)
-        if now.hour == 9 and now.minute == 0 and 30 <= now.second <= 33:
+        if now.hour == 9 and now.minute == 1 and 0 <= now.second <= 10:
             save_info()
-            free_balance = float(upbit.get_balances()[0]['balance'])
-            money = adjust_money(free_balance, total_hold)
+            free_balance = float(upbit.get_balances()[0]['balance']) # 계좌 잔고 조회
+            money = adjust_money(free_balance, total_hold) # 1코인당 투자 금액 설정
             for ticker in tickers:
-                current_price = pyupbit.get_current_price(ticker)
+                current_price = pyupbit.get_current_price(ticker) # 코인 현재가
                 # 롱 포지션 청산
                 if info[ticker]['position'] == 'long':
                     total_hold -= 1
@@ -154,16 +155,18 @@ while True:
                     cancel_order(ticker=ticker) # 예약 매도 주문 취소
                     time.sleep(1)
                     order = upbit.sell_market_order(ticker=ticker, volume=info[ticker]['amount']) # 시장가 매도
+                    logging.info(f'주문 내역: {order}')
                     calProfit = (current_price - info[ticker]['price']) / info[ticker]['price'] * 100 # 수익률 계산
                     bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} (롱)\n매수가: {info[ticker]['price']} -> 매도가: {current_price}\n수익률: {calProfit:.2f}%")
                     logging.info(f"코인: {ticker} (롱) 포지션 청산\n매수가: {info[ticker]['price']} -> 매도가: {current_price}\n수익률: {calProfit:.2f}")
 
                 # 조건 만족시 롱 포지션
-                elif total_hold < 3 and info[ticker]['position'] == 'wait' and \
+                elif total_hold < investing_coin and info[ticker]['position'] == 'wait' and \
                         info[ticker]['slow_osc'] > 0 and info[ticker]['slow_osc_slope'] > 0 and \
                         info[ticker]['macd_osc'] > 0 and info[ticker]['open'] > info[ticker]['ma']:
                     amount = money / current_price # 거래할 코인 갯수
                     order = upbit.buy_market_order(ticker=ticker, price=money) # 시장가 매수
+                    logging.info(f'주문 내역: {order}')
                     time.sleep(1)
                     target_price = current_price * profit
                     target_price = price_unit(target_price)
