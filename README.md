@@ -57,7 +57,7 @@ chmod +x ~/symmetrical-umbrella/main.py
 chmod +x ~/symmetrical-umbrella/initializing.py
 ```
 
-- 코인에 저장할 정보 값 초기화하여 파일로 저장
+- 코인에 저장할 정보 값을 초기화하여 파일로 저장
 Dictionary 형태로 코인 마다 (가격, Stochastic 수치, 매수량 등) 정보를 저장합니다.  
 처음 사용하신다면 initializing.py 프로그램을 이용하여 초기화를 진행하시고  
 그 외의 경우에는 저장된 정보로 계속 이용하시면 됩니다.
