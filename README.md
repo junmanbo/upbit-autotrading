@@ -76,7 +76,7 @@ sudo cat > /etc/systemd/system/trading-upbit.service << EOF
 [Unit]
 Description=Algorithm Trading Bot for Upbit (Stochastic Short-Term Strategy)
 
-[Service]
+[Service]   #user에 본인 계정 입력
 Type=simple
 ExecStart=/home/user/symmetrical-umbrella/main.py
 WorkingDirectory=/home/user
@@ -89,10 +89,11 @@ WantedBy=multi-user.target
 EOF
 ```
 
-- 서비스 (실행, 정지, 재실행, 자동실행, 변경사항 업데이트)
+- 서비스 (실행, 상태 확인, 정지, 재실행, 자동실행, 변경사항 업데이트)
 
 ```bash
 sudo systemctl start trading-upbit.service # 서비스 실행
+sudo systemctl status trading-upbit.service # 서비스 상태 확인
 sudo systemctl stop trading-upbit.service # 서비스 정지
 sudo systemctl restart trading-upbit.service # 서비스 재실행
 sudo systemctl enable trading-upbit.service # 서비스 자동실행 등록
