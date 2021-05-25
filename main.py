@@ -10,6 +10,11 @@ import logging
 import json
 import os
 
+# 원하는 대로 수정 가능한 변수 값
+money = 0
+investing_coin = 3 # 투자할 코인 갯수
+profit = 1.015 # 익절 수익률(1.015 == 1.5%)
+
 # 경로 설정
 home = os.getcwd()
 path_log = os.path.join(home, 'logs', 'upbit_trading.log')
@@ -129,14 +134,11 @@ for ticker in tickers:
     if info[ticker]['position'] != 'wait':
         total_hold += 1 # 투자한 Coin 갯수
 
-money = 0
-investing_coin = 3 # 투자할 코인 갯수
-profit = 1.015 # 익절 수익률(1.015 == 1.5%)
-bot.sendMessage(chat_id = chat_id, text=f"Stochastic (단타) 전략 시작합니다. 화이팅!")
-
 #  except_coin = ['KRW-BTC', 'KRW-ETH'] # 거래에서 제외하고 싶은 코인(있으면 주석 풀고 추가)
 #  for coin in except_coin:
 #      tickers.remove(coin)
+
+bot.sendMessage(chat_id = chat_id, text=f"Stochastic (단타) 전략 시작합니다. 화이팅!")
 
 while True:
     try:
@@ -187,8 +189,8 @@ while True:
                 if info[ticker]['position'] == 'long' and high > info[ticker]['price'] * profit:
                     total_hold -= 1
                     info[ticker]['position'] = 'wait'
-                    bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} (롱)\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {(profit-1)*100}%")
-                    logging.info(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit}")
+                    bot.sendMessage(chat_id = chat_id, text=f"(단타){ticker} (롱)\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {(profit-1)*100:.2f}%")
+                    logging.info(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit:.2f}")
                 time.sleep(0.1)
             with open(path_info, 'w') as f:
                 f.write(json.dumps(info)) # use `json.loads` to do the reverse
