@@ -19,8 +19,5 @@ for ticker in tickers:
     info[ticker]['ma'] = 0 # 지수이동평균 값
     info[ticker]['open'] = 0 # 지수이동평균 값
 
-home = os.getcwd()
-path = os.path.join(home, 'symmetrical-umbrella', 'info.txt')
-
-with open(path, 'w') as f:
+with open('./Data/info.txt', 'w') as f:
     f.write(json.dumps(info)) # use `json.loads` to do the reverse
