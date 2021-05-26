@@ -104,7 +104,6 @@ while True:
                         order = upbit.buy_market_order(ticker=ticker, price=money) # 시장가 매수
                         logging.info(f'주문 내역: {order}')
                         time.sleep(1)
-                        target_price = current_price * profit
                         info[ticker]['price'] = current_price
                         info[ticker]['position'] = 'long' # 포지션 'long' 으로 변경
                         info[ticker]['amount'] = amount # 코인 갯수 저장
@@ -126,8 +125,8 @@ while True:
                         total_hold -= 1
                         info[ticker]['position'] = 'wait'
                         order = upbit.sell_market_order(ticker, info[ticker]['amount'])
-                        bot.sendMessage(chat_id = chat_id, text=f"코인: {ticker}\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {(profit-1)*100:.2f}%")
-                        logging.info(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit:.2f}")
+                        calProfit = (current_price - info[ticker]['price']) / info[ticker]['price'] * 100 # 수익률 계산
+                        bot.sendMessage(chat_id = chat_id, text=f"코인: {ticker}\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {calProfit:.2f}%")
                     time.sleep(1)
                 except Exception as e:
                     logging.error(e)
