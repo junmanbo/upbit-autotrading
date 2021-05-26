@@ -129,6 +129,5 @@ dmypy.json
 .pyre/
 
 # TXT Key File
-upbit.txt
-mybot.txt
-info.txt
+*.txt
+*.log

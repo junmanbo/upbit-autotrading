@@ -128,7 +128,7 @@ while True:
                         order = upbit.sell_market_order(ticker, info[ticker]['amount'])
                         bot.sendMessage(chat_id = chat_id, text=f"코인: {ticker}\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {(profit-1)*100:.2f}%")
                         logging.info(f"코인: {ticker} (롱) 포지션\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {profit:.2f}")
-                    time.sleep(0.1)
+                    time.sleep(1)
                 except Exception as e:
                     logging.error(e)
                     bot.sendMessage(chat_id = chat_id, text=f"에러발생 {e}")
