@@ -36,19 +36,13 @@ with open('./Data/info.txt', 'r') as f:
 
 
 # 코인별 Stochastic OSC 값 info에 저장
-def save_info():
-    logging.info('그래프 분석 후 저장')
-    for ticker in tickers:
-        # 일봉 데이터 수집
-        df = pyupbit.get_ohlcv(ticker, interval="day")
-
-        # Save Stochastic Oscilator information
-        info[ticker]['slow_osc'] = indi.calStochastic(df, 12, 5, 5)[0]
-        info[ticker]['slow_osc_slope'] = indi.calStochastic(df, 12, 5, 5)[1]
-        info[ticker]['macd_osc'] = indi.calMACD(df, 12, 26, 9)
-        info[ticker]['ma'] = indi.calMA(df, 14)
-        time.sleep(0.1)
-    logging.info('그래프 분석 후 저장 완료')
+def save_info(ticker):
+    # 일봉 데이터 수집
+    df = pyupbit.get_ohlcv(ticker, interval="day")
+    info[ticker]['slow_osc'] = indi.calStochastic(df, 12, 5, 5)[0]
+    info[ticker]['slow_osc_slope'] = indi.calStochastic(df, 12, 5, 5)[1]
+    info[ticker]['macd_osc'] = indi.calMACD(df, 12, 26, 9)
+    info[ticker]['ma'] = indi.calMA(df, 14)
 
 # 투자금액 조정
 def adjust_money(free_balance):
@@ -73,17 +67,16 @@ for ticker in tickers:
     if info[ticker]['position'] != 'wait':
         current_hold += 1 # 투자한 Coin 갯수
 
-bot.sendMessage(chat_id = chat_id, text=f"단타 전략 시작")
-
 while True:
         now = datetime.datetime.now()
         time.sleep(1)
-        if now.hour == 9 and now.minute == 0 and 0 <= now.second <= 2:
-            save_info()
+        if (now.hour + 3) % 6 == 0 and now.minute == 0 and 0 <= now.second <= 2:
+            bot.sendMessage(chat_id = chat_id, text=f"단타 전략 시작\n조건에 맞는 코인 검색중")
             free_balance = float(upbit.get_balances()[0]['balance']) # 계좌 잔고 조회
             money = adjust_money(free_balance) # 1코인당 투자 금액 설정
             for ticker in tickers:
                 try:
+                    save_info(ticker)
                     current_price = pyupbit.get_current_price(ticker) # 코인 현재가
                     # 롱 포지션 청산
                     if info[ticker]['position'] == 'long':
@@ -103,7 +96,6 @@ while True:
                         amount = money / current_price # 거래할 코인 갯수
                         order = upbit.buy_market_order(ticker=ticker, price=money) # 시장가 매수
                         logging.info(f'주문 내역: {order}')
-                        time.sleep(1)
                         info[ticker]['price'] = current_price
                         info[ticker]['position'] = 'long' # 포지션 'long' 으로 변경
                         info[ticker]['amount'] = amount # 코인 갯수 저장
@@ -113,24 +105,20 @@ while True:
                 except Exception as e:
                     logging.error(e)
                     bot.sendMessage(chat_id = chat_id, text=f"에러발생 {e}")
-            tickers = pyupbit.get_tickers("KRW")
-
-        else:
+        elif current_hold != 0:
             for ticker in tickers:
                 try:
-                    current_price = pyupbit.get_current_price(ticker) # 코인 현재가
-                    if info[ticker]['position'] == 'wait':
-                        tickers.remove(ticker)
-                    elif info[ticker]['position'] == 'long' and current_price > info[ticker]['price'] * profit:
-                        total_hold -= 1
-                        info[ticker]['position'] = 'wait'
-                        order = upbit.sell_market_order(ticker, info[ticker]['amount'])
-                        calProfit = (current_price - info[ticker]['price']) / info[ticker]['price'] * 100 # 수익률 계산
-                        bot.sendMessage(chat_id = chat_id, text=f"코인: {ticker}\n매수가: {info[ticker]['price']} -> 매도가: {info[ticker]['price']*profit}\n수익률: {calProfit:.2f}%")
-                    time.sleep(1)
+                    if info[ticker]['position'] =='long': # 쓸데없이 현재가 조회하는 것을 막기 위해 따로 분리
+                        current_price = pyupbit.get_current_price(ticker) # 코인 현재가
+                        if current_price > info[ticker]['price'] * profit:
+                            order = upbit.sell_market_order(ticker, info[ticker]['amount'])
+                            calProfit = (current_price - info[ticker]['price']) / info[ticker]['price'] * 100 # 수익률 계산
+                            total_hold -= 1
+                            info[ticker]['position'] = 'wait'
+                            bot.sendMessage(chat_id = chat_id, text=f"코인: {ticker}\n수익률: {calProfit:.2f}%")
+                        time.sleep(1)
                 except Exception as e:
                     logging.error(e)
                     bot.sendMessage(chat_id = chat_id, text=f"에러발생 {e}")
             with open('./Data/info.txt', 'w') as f:
-                f.write(json.dumps(info)) # use `json.loads` to do the reverse
-
+                f.write(json.dumps(info))
