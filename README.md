@@ -21,8 +21,8 @@ git clone https://github.com/junmanbo/upbit-autotrading
 - 모듈 설치
 
 ```bash
-pip install --upgrade pip
-pip install pyupbit python-telegram-bot numpy pandas
+pip install -U pip
+pip install -r requirements.txt
 ```
 
 - api 키 저장 폴더 및 로그 저장 폴더 생성
@@ -101,6 +101,8 @@ sudo systemctl daemon-reload # 서비스 변경사항 업데이트
 ```
 
 성투하세요!  
+
+- Docker 이미지로 준비 중입니다.
 
 ## 투자 유의사항
 
