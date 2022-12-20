@@ -13,7 +13,7 @@ Auto Trading for Upbit (Short-Term)
 ### 설치 (Installation)
 
 ```bash
-git clone https://github.com/mirae707/symmetrical-umbrella
+git clone https://github.com/junmanbo/upbit-autotrading
 ```
 
 ### 준비 (Requirement)
@@ -53,8 +53,8 @@ EOF
 - 파이썬 파일 실행 권한 부여
 
 ```bash
-chmod +x ~/symmetrical-umbrella/main.py
-chmod +x ~/symmetrical-umbrella/initializing.py
+chmod +x ~/upbit-autotrading/main.py
+chmod +x ~/upbit-autotrading/initializing.py
 ```
 
 - 코인에 저장할 정보 값을 초기화하여 파일로 저장
@@ -63,7 +63,7 @@ Dictionary 형태로 코인 마다 (가격, Stochastic 수치, 매수량 등) �
 그 외의 경우에는 저장된 정보로 계속 이용하시면 됩니다.
 
 ```bash
-~/symmetrical-umbrella/initializing.py
+~/upbit-autotrading/initializing.py
 ```
 
 ### 실행 (Run)
@@ -78,7 +78,7 @@ Description=Algorithm Trading Bot for Upbit (Stochastic Short-Term Strategy)
 
 [Service]   #user에 본인 계정 입력
 Type=simple
-ExecStart=/home/user/symmetrical-umbrella/main.py
+ExecStart=/home/user/upbit-autotrading/main.py
 WorkingDirectory=/home/user
 Restart=on-failure
 User=user
